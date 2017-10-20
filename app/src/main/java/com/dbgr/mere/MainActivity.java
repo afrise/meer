@@ -45,9 +45,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
         googleMap.getUiSettings().setAllGesturesEnabled(false);
         googleMap.getUiSettings().setCompassEnabled(false);
-        if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 0);
-        }
+
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         spot = new LatLng(location.getLatitude(), location.getLongitude());
@@ -94,7 +94,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             e.printStackTrace();
                         }
                         startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                .putExtra(Intent.EXTRA_TEXT, (u + "\n" + R.string.custom_message))
+                                .putExtra(Intent.EXTRA_TEXT, u + "\n" + getString(R.string.custom_message))
                                 .setType("text/plain"));
                     }
                 },
@@ -102,7 +102,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             @Override
                             public void onErrorResponse(VolleyError error) {
                                 startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                        .putExtra(Intent.EXTRA_TEXT, url + "\n" + R.string.custom_message)
+                                        .putExtra(Intent.EXTRA_TEXT, url + "\n" + getString(R.string.custom_message))
                                         .setType("text/plain"));
                             }
                         }));
