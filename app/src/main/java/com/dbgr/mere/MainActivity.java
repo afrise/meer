@@ -44,13 +44,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setCompassEnabled(false);
         googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
         googleMap.setMyLocationEnabled(true);
+        googleMap.moveCamera(CameraUpdateFactory.newLatLng(new gps().getLatLng()));
         if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED) {
             getSystemService(LocationManager.class).requestLocationUpdates(LocationManager.GPS_PROVIDER, 50, 1, new LocationListener() {
                 public void onLocationChanged(Location location) {
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(new gps().getLatitude(), location.getLongitude())));
                     googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
                 }
-
                 public void onStatusChanged(String s, int i, Bundle b) {
                 }
 
@@ -63,13 +63,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
-                    if (ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)
                     try {
                         Volley.newRequestQueue(getApplicationContext()).add(new JsonObjectRequest(Request.Method.POST,
                                 "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
                                 new JSONObject("{\"longUrl\":  \"https://www.google.com/maps/dir/?api=1&destination=" +
-                                        getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLatitude() + "%2C" +
-                                        getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLongitude() + "\"}"),
+                                        new gps().getLatitude() + "%2C" + new gps().getLongitude() + "\"}"),
                                 new com.android.volley.Response.Listener<JSONObject>() {
                                     @Override
                                     public void onResponse(JSONObject response) {
@@ -83,12 +81,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                                 new com.android.volley.Response.ErrorListener() {
                                     @Override
                                     public void onErrorResponse(VolleyError error) {
-                                        if (ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)
-                                            startActivity(new Intent().setAction(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT,
-                                                    "https://www.google.com/maps/dir/?api=1&destination=" +
-                                                            getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLatitude() + "%2C" +
-                                                            getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLongitude() + "\n" +
-                                                            getString(R.string.custom_message)).setType("text/plain"));
+                                        startActivity(new Intent()
+                                                .setAction(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT, "https://www.google.com/maps/dir/?api=1&destination=" + new gps().getLatitude() + "%2C" + new gps().getLongitude() + "\n" + getString(R.string.custom_message)).setType("text/plain"));
                                     }
                                 }));
                     } catch (JSONException e) {/**/}
