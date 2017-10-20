@@ -5,12 +5,12 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
@@ -28,7 +28,6 @@ import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
-    private Location spot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +43,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setAllGesturesEnabled(false);
         googleMap.getUiSettings().setCompassEnabled(false);
         googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
-
+        googleMap.setMyLocationEnabled(true);
         if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED) {
-            spot = getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(spot.getLatitude(), spot.getLongitude())));
-            googleMap.setMyLocationEnabled(true);
-            final LocationListener locationListener = new LocationListener() {
+            getSystemService(LocationManager.class).requestLocationUpdates(LocationManager.GPS_PROVIDER, 50, 1, new LocationListener() {
                 public void onLocationChanged(Location location) {
-                    spot = location;
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(spot.getLatitude(), spot.getLongitude())));
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
                     googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
                 }
 
@@ -64,51 +59,46 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 public void onProviderDisabled(String s) {
                 }
-            };
-            getSystemService(LocationManager.class).requestLocationUpdates(LocationManager.GPS_PROVIDER, 50, 1, locationListener);
+            });
             googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
-                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-                    final String url = "https://www.google.com/maps/dir/?api=1&destination="
-                            + spot.getLatitude() + "%2C" + spot.getLongitude() + "&zoom=17";
+                    if (ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)
                     try {
-                        queue.add(new JsonObjectRequest(Request.Method.POST,
+                        Volley.newRequestQueue(getApplicationContext()).add(new JsonObjectRequest(Request.Method.POST,
                                 "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
-                                new JSONObject("{\"longUrl\":  \"" + url + "\"}"),
+                                new JSONObject("{\"longUrl\":  \"https://www.google.com/maps/dir/?api=1&destination=" +
+                                        getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLatitude() + "%2C" +
+                                        getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLongitude() + "\"}"),
                                 new com.android.volley.Response.Listener<JSONObject>() {
                                     @Override
                                     public void onResponse(JSONObject response) {
-                                        String u = url;
                                         try {
-                                            u = response.getString("id");
-                                        } catch (JSONException e) {
-                                            //
-                                        }
-                                        startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                                .putExtra(Intent.EXTRA_TEXT, u + "\n" + getString(R.string.custom_message))
-                                                .setType("text/plain"));
+                                            startActivity(new Intent().setAction(Intent.ACTION_SEND)
+                                                    .putExtra(Intent.EXTRA_TEXT, response.getString("id") + "\n" + getString(R.string.custom_message))
+                                                    .setType("text/plain"));
+                                        } catch (JSONException e) {/**/}
                                     }
-                                }, new com.android.volley.Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                        .putExtra(Intent.EXTRA_TEXT, url + "\n" + getString(R.string.custom_message))
-                                        .setType("text/plain"));
-                            }
-                        }));
-                    } catch (JSONException e) {//
-                    }
+                                },
+                                new com.android.volley.Response.ErrorListener() {
+                                    @Override
+                                    public void onErrorResponse(VolleyError error) {
+                                        if (ContextCompat.checkSelfPermission(getApplicationContext(), ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)
+                                            startActivity(new Intent().setAction(Intent.ACTION_SEND).putExtra(Intent.EXTRA_TEXT,
+                                                    "https://www.google.com/maps/dir/?api=1&destination=" +
+                                                            getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLatitude() + "%2C" +
+                                                            getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER).getLongitude() + "\n" +
+                                                            getString(R.string.custom_message)).setType("text/plain"));
+                                    }
+                                }));
+                    } catch (JSONException e) {/**/}
                 }
             });
         } else System.exit(0);
     }
-
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
 }
-
-
