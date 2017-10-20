@@ -2,7 +2,6 @@ package com.dbgr.mere;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -10,7 +9,6 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -26,6 +24,9 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
     private LatLng spot;
@@ -44,8 +45,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
         googleMap.getUiSettings().setAllGesturesEnabled(false);
         googleMap.getUiSettings().setCompassEnabled(false);
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION}, 0);
+        if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 0);
         }
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -57,6 +58,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void onLocationChanged(Location location) {
                 spot = new LatLng(location.getLatitude(), location.getLongitude());
                 googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
+                googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
             }
 
             public void onStatusChanged(String s, int i, Bundle b) {
@@ -79,7 +81,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     longUrl.put("longUrl", url);
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    Log.d("Debug", "Cannot add longUrl to JSON Object");
                 }
                 queue.add(new JsonObjectRequest(Request.Method.POST,
                         "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
@@ -91,10 +92,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             u = response.getString("id");
                         } catch (JSONException e) {
                             e.printStackTrace();
-                            Log.d("Debug", "Cannot get ID string from Response");
                         }
                         startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                .putExtra(Intent.EXTRA_TEXT, u + "\n" + R.string.custom_message)
+                                .putExtra(Intent.EXTRA_TEXT, (u + "\n" + R.string.custom_message))
                                 .setType("text/plain"));
                     }
                 },
