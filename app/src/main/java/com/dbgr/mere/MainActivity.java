@@ -1,6 +1,5 @@
 package com.dbgr.mere;
 
-import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
@@ -29,14 +28,13 @@ import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
-    private LatLng spot;
+    private Location spot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 0);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
     }
 
     @Override
@@ -47,19 +45,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setCompassEnabled(false);
         googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
 
-        if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED)
-            ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 0);
         if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED) {
-            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            spot = new LatLng(location.getLatitude(), location.getLongitude());
-            googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
+            spot = getSystemService(LocationManager.class).getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(spot.getLatitude(), spot.getLongitude())));
             googleMap.setMyLocationEnabled(true);
-
             final LocationListener locationListener = new LocationListener() {
                 public void onLocationChanged(Location location) {
-                    spot = new LatLng(location.getLatitude(), location.getLongitude());
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
+                    spot = location;
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(spot.getLatitude(), spot.getLongitude())));
                     googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
                 }
 
@@ -72,13 +65,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onProviderDisabled(String s) {
                 }
             };
-            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
+            getSystemService(LocationManager.class).requestLocationUpdates(LocationManager.GPS_PROVIDER, 50, 1, locationListener);
             googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                 @Override
                 public void onMapClick(LatLng latLng) {
                     RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
                     final String url = "https://www.google.com/maps/dir/?api=1&destination="
-                            + spot.latitude + "%2C" + spot.longitude + "&zoom=17";
+                            + spot.getLatitude() + "%2C" + spot.getLongitude() + "&zoom=17";
                     try {
                         queue.add(new JsonObjectRequest(Request.Method.POST,
                                 "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
@@ -108,10 +101,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
             });
-        } else {
-            //tell user to allow location
-            System.exit(0);
-        }
+        } else System.exit(0);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
     }
 }
 
