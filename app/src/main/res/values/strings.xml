@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MEER</string>
+    <string name="title_activity_main">MEER</string>
+    <string name="custom_message">Send from MEER for Android</string>
+</resources>
