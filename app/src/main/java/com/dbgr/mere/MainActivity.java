@@ -45,60 +45,58 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
         googleMap.getUiSettings().setAllGesturesEnabled(false);
         googleMap.getUiSettings().setCompassEnabled(false);
+        googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
+
         if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, 0);
+        if (ContextCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED) {
+            LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            spot = new LatLng(location.getLatitude(), location.getLongitude());
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
+            googleMap.setMyLocationEnabled(true);
 
-        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        spot = new LatLng(location.getLatitude(), location.getLongitude());
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
-        googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
-        googleMap.setMyLocationEnabled(true);
-        final LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                spot = new LatLng(location.getLatitude(), location.getLongitude());
-                googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
-                googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
-            }
-
-            public void onStatusChanged(String s, int i, Bundle b) {
-            }
-
-            public void onProviderEnabled(String s) {
-            }
-
-            public void onProviderDisabled(String s) {
-            }
-        };
-        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
-        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-                final String url = "https://www.google.com/maps/dir/?api=1&destination=" + spot.latitude + "%2C" + spot.longitude + "&zoom=17";
-                JSONObject longUrl = new JSONObject();
-                try {
-                    longUrl.put("longUrl", url);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+            final LocationListener locationListener = new LocationListener() {
+                public void onLocationChanged(Location location) {
+                    spot = new LatLng(location.getLatitude(), location.getLongitude());
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLng(spot));
+                    googleMap.animateCamera(CameraUpdateFactory.zoomTo(17.50f));
                 }
-                queue.add(new JsonObjectRequest(Request.Method.POST,
-                        "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
-                        longUrl, new com.android.volley.Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        String u = url;
-                        try {
-                            u = response.getString("id");
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        startActivity(new Intent().setAction(Intent.ACTION_SEND)
-                                .putExtra(Intent.EXTRA_TEXT, u + "\n" + getString(R.string.custom_message))
-                                .setType("text/plain"));
-                    }
-                },
-                        new com.android.volley.Response.ErrorListener() {
+
+                public void onStatusChanged(String s, int i, Bundle b) {
+                }
+
+                public void onProviderEnabled(String s) {
+                }
+
+                public void onProviderDisabled(String s) {
+                }
+            };
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
+            googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                @Override
+                public void onMapClick(LatLng latLng) {
+                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                    final String url = "https://www.google.com/maps/dir/?api=1&destination="
+                            + spot.latitude + "%2C" + spot.longitude + "&zoom=17";
+                    try {
+                        queue.add(new JsonObjectRequest(Request.Method.POST,
+                                "https://www.googleapis.com/urlshortener/v1/url?fields=id&key=AIzaSyBszlwslur8Dk6rUfeFH9x6YAhiQ-kOvIc",
+                                new JSONObject("{\"longUrl\":  \"" + url + "\"}"),
+                                new com.android.volley.Response.Listener<JSONObject>() {
+                                    @Override
+                                    public void onResponse(JSONObject response) {
+                                        String u = url;
+                                        try {
+                                            u = response.getString("id");
+                                        } catch (JSONException e) {
+                                            //
+                                        }
+                                        startActivity(new Intent().setAction(Intent.ACTION_SEND)
+                                                .putExtra(Intent.EXTRA_TEXT, u + "\n" + getString(R.string.custom_message))
+                                                .setType("text/plain"));
+                                    }
+                                }, new com.android.volley.Response.ErrorListener() {
                             @Override
                             public void onErrorResponse(VolleyError error) {
                                 startActivity(new Intent().setAction(Intent.ACTION_SEND)
@@ -106,8 +104,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                                         .setType("text/plain"));
                             }
                         }));
-            }
-        });
+                    } catch (JSONException e) {//
+                    }
+                }
+            });
+        } else {
+            //tell user to allow location
+            System.exit(0);
+        }
     }
 }
 
